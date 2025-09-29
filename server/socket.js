@@ -1,7 +1,7 @@
 import {createServer} from 'http';
 import { Server } from "socket.io";
 
-const PUERTO = 8080;
+const PUERTO = 3000;
 
 const server = createServer();
 const io = new Server(server, {

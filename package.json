@@ -2,10 +2,11 @@
   "name": "project-race-sockets",
   "version": "1.0.0",
   "description": "Proyecto de Sistemas distribuidos",
-  "main": "index.js",
+  "main": "server.js",
+  "type": "module",
   
   "scripts": {
-    "start": "node server/server2.js",
+    "start": "node server.js",
     "dev": "nodemon server/server.js"
   }
 ,
