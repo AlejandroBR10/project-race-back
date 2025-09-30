@@ -4,12 +4,10 @@
   "description": "Proyecto de Sistemas distribuidos",
   "main": "server.js",
   "type": "module",
-  
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server/server.js"
-  }
-,
+    "dev": "nodemon server.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
