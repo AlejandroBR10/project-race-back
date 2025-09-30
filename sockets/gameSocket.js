@@ -27,6 +27,18 @@ export default function gameSocket(io, socket) {
     }
   });
 
+  socket.on("winner", () => {
+    const winnerId = socket.id;
+    //Evento para el ganador
+    socket.emit("youWon");
+
+    //Evento para el resto de jugadores (los que perdieron :))
+    socket.broadcast.emit("someOneWon", {
+      winnerId: winnerId,
+      message: `El jugador ${winnerId} ha ganado la carrera!!!!!`
+    });
+  });
+
   socket.on("disconnect", () => {
     gameManager.removePlayer(socket.id);
     socket.broadcast.emit("removePlayer", socket.id);
