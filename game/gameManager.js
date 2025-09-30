@@ -68,7 +68,7 @@ const baseY = 200;       // posición inicial vertical
 const laneHeight = 160;  // separación entre pistas
 const players = {};
 
-function addPlayer(id) {
+function addPlayer(id, playerName = "Jugador", carKey = "car1") {
   const laneIndex = Object.keys(players).length;
   const trackY = baseY + laneIndex * laneHeight;
 
@@ -77,7 +77,8 @@ function addPlayer(id) {
     x: 150,
     y: trackY,
     trackY,
-    carKey: "car" + ((laneIndex % 5) + 1), // car1..car5 en ciclo
+    carKey,         // Usa el coche recibido
+    playerName,     // Guarda el nombre recibido
   };
 
   players[id] = playerInfo;
