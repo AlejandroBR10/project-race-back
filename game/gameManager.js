@@ -66,19 +66,26 @@ export default {
 
 const baseY = 200;       // posición inicial vertical
 const laneHeight = 160;  // separación entre pistas
+const maxLanes = 5;      // Número máximo de carriles
 const players = {};
+const availableLanes = Array.from({ length: maxLanes }, (_, i) => i); // Carriles disponibles
 
 function addPlayer(id, playerName = "Jugador", carKey = "car1") {
-  const laneIndex = Object.keys(players).length;
-  const trackY = baseY + laneIndex * laneHeight;
+  if (availableLanes.length === 0) {
+    throw new Error("No hay carriles disponibles para nuevos jugadores.");
+  }
+
+  const laneIndex = availableLanes.shift(); // Toma el primer carril disponible
+  const trackY = baseY + laneIndex * laneHeight; // Calcula la posición vertical del carril
 
   const playerInfo = {
     id,
-    x: 150,
-    y: trackY,
-    trackY,
-    carKey,         // Usa el coche recibido
-    playerName,     // Guarda el nombre recibido
+    x: 150, // Posición inicial horizontal
+    y: trackY, // Posición inicial vertical (único para cada jugador)
+    trackY, // Guarda el carril asignado
+    carKey, // Coche seleccionado
+    playerName, // Nombre del jugador
+    laneIndex, // Índice del carril
   };
 
   players[id] = playerInfo;
@@ -93,6 +100,11 @@ function updatePlayer(id, pos) {
 }
 
 function removePlayer(id) {
+  if (!players[id]) return;
+
+  const { laneIndex } = players[id];
+  availableLanes.push(laneIndex); // Libera el carril
+  availableLanes.sort(); // Asegura que los carriles estén ordenados
   delete players[id];
 }
 

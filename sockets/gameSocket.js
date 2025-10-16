@@ -1,6 +1,6 @@
 import gameManager from "../game/gameManager.js";
 
-const MAX_PLAYERS_PER_ROOM = 6;
+const MAX_PLAYERS_PER_ROOM = 5;
 const rooms = {};
 
 function findOrCreateRoom() {
