@@ -14,17 +14,27 @@ function findOrCreateRoom() {
   return newRoomName;
 }
 
-// Helper para imprimir el estado actual de las salas y sus jugadores
 function printRoomsStatus() {
   let msg = "\n=== Estado actual de las salas ===";
   Object.entries(rooms).forEach(([roomName, players]) => {
-    msg += `\nSala: ${roomName}`;
-    players.forEach((p) => {
-      msg += `\n  - Jugador: ${p.playerName} (ID: ${p.id})`;
+    msg += `\nSala: ${roomName} (${players.length} jugadores)`;
+    players.forEach((p, idx) => {
+      msg += `\n  ${idx + 1}. ${p.playerName} (ID: ${p.id.substring(0, 8)}...)`;
     });
   });
   msg += "\n=================================\n";
   console.log(msg);
+}
+
+function broadcastPlayerList(io, roomName) {
+  if (!rooms[roomName] || rooms[roomName].length === 0) return;
+
+  const orderedIds = rooms[roomName].map((p) => p.id);
+  console.log(
+    `Enviando playerList a ${roomName}:`,
+    orderedIds.map((id) => id.substring(0, 8)),
+  );
+  io.to(roomName).emit("playerList", orderedIds);
 }
 
 export default function gameSocket(io, socket) {
@@ -34,31 +44,33 @@ export default function gameSocket(io, socket) {
     roomName = findOrCreateRoom();
     const currentRoomPlayers = rooms[roomName];
 
-    // Agrega al jugador al estado global y a la sala
     const playerInfo = gameManager.addPlayer(socket.id, playerName, playerCar);
     playerInfo.room = roomName;
     currentRoomPlayers.push(playerInfo);
     socket.join(roomName);
 
-    // Enviar al jugador su propio estado
+    console.log(`${playerName} se unio a ${roomName}`);
+
     socket.emit("newPlayer", playerInfo);
 
-    // Enviar mensaje con la sala asignada
     socket.emit("roomInfo", {
-      message: `¡Estás conectado en la sala: ${roomName}!`,
+      message: `Estas conectado en la sala: ${roomName}!`,
       room: roomName,
       playersInRoom: currentRoomPlayers.map((p) => p.playerName),
     });
 
-    // Reenviar al jugador todos los que ya estaban en la sala
     currentRoomPlayers.forEach((p) => {
-      if (p.id !== socket.id) socket.emit("newPlayer", p);
+      if (p.id !== socket.id) {
+        socket.emit("newPlayer", p);
+      }
     });
 
-    // Notificar al resto de la sala sobre el nuevo jugador
     socket.to(roomName).emit("newPlayer", playerInfo);
 
-    // Mostrar estado actual de todas las salas y jugadores conectados
+    setTimeout(() => {
+      broadcastPlayerList(io, roomName);
+    }, 100);
+
     printRoomsStatus();
   });
 
@@ -76,35 +88,42 @@ export default function gameSocket(io, socket) {
   socket.on("winner", () => {
     if (roomName) {
       const winnerId = socket.id;
-      // Evento para el ganador
+      const winner = rooms[roomName].find((p) => p.id === winnerId);
+
       socket.emit("youWon");
 
-      // Evento para el resto de la sala
       socket.to(roomName).emit("someOneWon", {
         winnerId,
-        message: `El jugador ${winnerId} ha ganado la carrera!!!!!`,
+        message: `${winner?.playerName || "Un jugador"} ha ganado la carrera!`,
       });
+
+      console.log(`${winner?.playerName} gano en ${roomName}`);
     }
   });
 
   socket.on("disconnect", () => {
     if (!roomName) return;
+
+    const disconnectedPlayer = rooms[roomName].find((p) => p.id === socket.id);
+    console.log(
+      `${disconnectedPlayer?.playerName || socket.id} desconectandose de ${roomName}`,
+    );
+
     gameManager.removePlayer(socket.id);
 
-    // Elimina al jugador de la sala
     rooms[roomName] = rooms[roomName].filter((p) => p.id !== socket.id);
 
-    // Notifica al resto de la sala
     socket.to(roomName).emit("removePlayer", socket.id);
 
-    // Si la sala queda vacía, elimínala
-    if (rooms[roomName].length === 0) {
-      delete rooms[roomName];
-    }
+    setTimeout(() => {
+      if (rooms[roomName] && rooms[roomName].length > 0) {
+        broadcastPlayerList(io, roomName);
+      } else if (rooms[roomName] && rooms[roomName].length === 0) {
+        delete rooms[roomName];
+        console.log(`Sala ${roomName} eliminada (vacia)`);
+      }
+    }, 150);
 
-    console.log(`Jugador desconectado: ${socket.id}`);
-
-    // Mostrar estado actual de todas las salas y jugadores conectados
     printRoomsStatus();
   });
 }
