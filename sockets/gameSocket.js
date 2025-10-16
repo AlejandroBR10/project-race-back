@@ -3,6 +3,10 @@ import gameManager from "../game/gameManager.js";
 const MAX_PLAYERS_PER_ROOM = 5;
 const rooms = {};
 
+/**
+ * Encuentra una sala con espacio disponible o crea una nueva.
+ * @returns {string} El nombre de la sala encontrada o creada.
+ */
 function findOrCreateRoom() {
   for (const [roomName, players] of Object.entries(rooms)) {
     if (players.length < MAX_PLAYERS_PER_ROOM) {
@@ -14,6 +18,9 @@ function findOrCreateRoom() {
   return newRoomName;
 }
 
+/**
+ * Imprime el estado actual de las salas en la consola.
+ */
 function printRoomsStatus() {
   let msg = "\n=== Estado actual de las salas ===";
   Object.entries(rooms).forEach(([roomName, players]) => {
@@ -26,6 +33,11 @@ function printRoomsStatus() {
   console.log(msg);
 }
 
+/**
+ * Envía la lista de jugadores de una sala a todos los clientes conectados en esa sala.
+ * @param {Object} io - Instancia de Socket.IO.
+ * @param {string} roomName - Nombre de la sala.
+ */
 function broadcastPlayerList(io, roomName) {
   if (!rooms[roomName] || rooms[roomName].length === 0) return;
 
@@ -37,9 +49,20 @@ function broadcastPlayerList(io, roomName) {
   io.to(roomName).emit("playerList", orderedIds);
 }
 
+/**
+ * Configura los eventos de socket para gestionar el juego.
+ * @param {Object} io - Instancia de Socket.IO.
+ * @param {Object} socket - Socket del cliente conectado.
+ */
 export default function gameSocket(io, socket) {
   let roomName = null;
 
+  /**
+   * Evento para que un jugador se una al juego.
+   * @param {Object} data - Datos del jugador.
+   * @param {string} data.playerName - Nombre del jugador.
+   * @param {string} data.playerCar - Coche seleccionado por el jugador.
+   */
   socket.on("joinGame", ({ playerName, playerCar }) => {
     roomName = findOrCreateRoom();
     const currentRoomPlayers = rooms[roomName];
@@ -74,6 +97,12 @@ export default function gameSocket(io, socket) {
     printRoomsStatus();
   });
 
+  /**
+   * Evento para actualizar la posición de un jugador.
+   * @param {Object} pos - Posición del jugador.
+   * @param {number} pos.x - Coordenada X del jugador.
+   * @param {number} pos.y - Coordenada Y del jugador.
+   */
   socket.on("playerMove", (pos) => {
     const updated = gameManager.updatePlayer(socket.id, pos);
     if (updated && roomName) {
@@ -85,6 +114,9 @@ export default function gameSocket(io, socket) {
     }
   });
 
+  /**
+   * Evento para notificar que un jugador ha ganado.
+   */
   socket.on("winner", () => {
     if (roomName) {
       const winnerId = socket.id;
@@ -101,6 +133,9 @@ export default function gameSocket(io, socket) {
     }
   });
 
+  /**
+   * Evento para manejar la desconexión de un jugador.
+   */
   socket.on("disconnect", () => {
     if (!roomName) return;
 
